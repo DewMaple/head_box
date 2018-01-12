@@ -13,12 +13,14 @@
 # enforce convention that rects are in top left, bottom right order
 # correct name of image path object
 
-import sys
 import json
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+import sys
+
+import imageio
 import matplotlib as mpl
+import matplotlib.image as mpimg
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 
 mpl.rcParams['toolbar'] = 'None'
 from matplotlib.widgets import Button
@@ -101,12 +103,12 @@ def clear(event):  # called when the clear button is hit
 
 def onclick(event):  # called when anywhere inside the window is clicked
     if event.xdata > 1 and event.ydata > 1:
-        if (len(top_corners) > len(bottom_corners)):
+        if len(top_corners) > len(bottom_corners):
             bottom_corners.append([event.xdata, event.ydata])
             patchCache.append(patches.Rectangle((top_corners[-1][0], top_corners[-1][1])
                                                 , bottom_corners[-1][0] - top_corners[-1][0],
                                                 bottom_corners[-1][1] - top_corners[-1][1],
-                                                hatch='/', fill=False))
+                                                hatch='/', fill=False, edgecolor="red"))
             ax.add_patch(patchCache[-1])
             plt.draw()
         else:
@@ -115,7 +117,7 @@ def onclick(event):  # called when anywhere inside the window is clicked
 
 def undo(event):  # called when the undo button is hit
     # Only act when a path was drawn
-    if (len(top_corners) == len(bottom_corners)):
+    if len(top_corners) == len(bottom_corners):
         bottom_corners.pop()
         top_corners.pop()
         to_remove = patchCache.pop()
@@ -137,11 +139,12 @@ onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
 
 #
 filename = path + "/" + onlyfiles.pop()
-image = mpimg.imread(filename)
+image = imageio.imread(filename)
 imshow_obj = ax.imshow(image)
 
-plt.axis("off")
+# plt.axis("off")
 fig = plt.gcf()
+# fig.set_size_inches(forward=True)
 fig.canvas.mpl_connect('button_press_event', onclick)
 
 # add the buttons to the bottom of the window
