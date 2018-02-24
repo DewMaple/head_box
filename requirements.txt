@@ -10,6 +10,7 @@ funcsigs==1.0.2
 future==0.16.0
 futures==3.2.0
 html5lib==0.9999999
+imageio==2.2.0
 imgaug==0.2.5
 Markdown==2.6.10
 matplotlib==2.1.1

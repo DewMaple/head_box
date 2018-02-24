@@ -6,6 +6,8 @@ Detect tiny heads in image
 $ cd utils  && make && make hungarian && cd ..
 $ python train.py --hypes hypes/lstm_rezoom.json --gpu 0 --logdir output
 
+## Restore training
+$ python train.py --hypes hypes/lstm_rezoom.json --gpu 0 --logdir output --weights $weights_file
 
 # Evaluation
 
