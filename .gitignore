@@ -5,3 +5,4 @@ data/
 **/*.pyc
 .idea/
 output/
+weights_my/

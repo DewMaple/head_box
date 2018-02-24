@@ -83,6 +83,7 @@ def hot_predict(image_path, parameters, to_json=True, verbose=False):
 
     # The default options for prediction of bounding boxes.
     options = H['evaluate']
+    print('options is {}'.format(options))
     if 'pred_options' in parameters:
         # The new options for prediction of bounding boxes
         for key, val in parameters['pred_options'].items():
@@ -216,7 +217,9 @@ def regular_predict(image_path, parameters, to_json, H, options):
     image_info = {'path': image_path, 'original_shape': img.shape[:2], 'transformed': img}
     pred_anno = postprocess_regular(image_info, np_pred_boxes, np_pred_confidences, H, options)
     result = [r.writeJSON() for r in pred_anno] if to_json else pred_anno
-    img_path = os.path.join(os.path.dirname(image_path), 'predicted.jpg')
+
+    fname = image_path.split(os.sep)[-1]
+    img_path = os.path.join(os.path.dirname(image_path), '{}_predicted.png'.format(fname))
     save_scaled_img(img, result, img_path)
 
     print('result boxes is: {}'.format(result))
@@ -285,6 +288,7 @@ def postprocess_regular(image_info, np_pred_boxes, np_pred_confidences, H, optio
         rects = Rotate90.invert(h, rects)
 
     rects = [r for r in rects if r.x1 < r.x2 and r.y1 < r.y2 and r.score > options['min_conf']]
+
     pred_anno.rects = rects
     pred_anno = rescale_boxes((H['image_height'], H['image_width']), pred_anno, h, w)
     return pred_anno
@@ -301,7 +305,6 @@ def prepare_options(hypes_path='hypes.json', options=None):
     """
     with open(hypes_path, 'r') as f:
         H = json.load(f)
-
     # set default options values if they were not provided
     if options is None:
         if 'evaluate' in H:
@@ -315,18 +318,20 @@ def prepare_options(hypes_path='hypes.json', options=None):
             H['evaluate'] = {}
         # merge options argument into evaluate options from hyperparameters file
         for key, val in options.iteritems():
-            H['evaluate'][key] = val
+            if val is not None:
+                H['evaluate'][key] = val
 
     if H['evaluate'].get('gpu', False):
         os.environ['CUDA_VISIBLE_DEVICES'] = str(H['evaluate']['gpu'])
     return H
 
 
-def save_results(image_path, anno, output_dir, fname='result'):
+def save_results(image_path, anno, output_dir, fname='result', json_result=False):
     """Saves results of the prediction.
     Args:
         image_path (string): The path to source image to predict bounding boxes.
         anno (Annotation, list): The predicted annotations for source image or the list of bounding boxes.
+        json_result: if create json file of detected rects
     Returns:
         Nothing.
     """
@@ -347,19 +352,20 @@ def save_results(image_path, anno, output_dir, fname='result'):
     new_img.save(prediction_image_path)
     subprocess.call(['chmod', '644', prediction_image_path])
 
-    fpath = os.path.join(os.path.dirname(image_path), fname + '.json')
-    if is_list:
-        json.dump({'image_path': prediction_image_path, 'rects': anno}, open(fpath, 'w'))
-    else:
-        al.saveJSON(fpath, anno)
-    subprocess.call(['chmod', '644', fpath])
+    if json_result:
+        fpath = os.path.join(os.path.dirname(image_path), fname + '.json')
+        if is_list:
+            json.dump({'image_path': prediction_image_path, 'rects': anno}, open(fpath, 'w'))
+        else:
+            al.saveJSON(fpath, anno)
+        subprocess.call(['chmod', '644', fpath])
 
 
 def main():
     parser = OptionParser(usage='usage: %prog [options] <image> <hypes>')
     parser.add_option('--gpu', action='store', type='int', default=0)
-    parser.add_option('--tau', action='store', type='float', default=0.25)
-    parser.add_option('--min_conf', action='store', type='float', default=0.2)
+    parser.add_option('--tau', action='store', type='float')
+    parser.add_option('--min_conf', action='store', type='float')
 
     (options, args) = parser.parse_args()
     options = vars(options)
