@@ -66,7 +66,21 @@ def initialize(weights_path, hypes_path, options=None):
     return {'sess': sess, 'pred_boxes': pred_boxes, 'pred_confidences': pred_confidences, 'x_in': x_in, 'hypes': H}
 
 
-def hot_predict(image_path, parameters, to_json=True, verbose=False):
+def predict(image_path, H, parameters, options, to_json=True, verbose=False):
+    use_sliding_window = H.get('sliding_predict', {'enable': False}).get('enable', False)
+    if use_sliding_window:
+        if verbose:
+            print('Sliding window mode on')
+        print('Sliding prediction')
+        return sliding_predict(image_path, parameters, to_json, H, options)
+    else:
+        if verbose:
+            print('Sliding window mode off')
+        print('Regular prediction')
+        return regular_predict(image_path, parameters, to_json, H, options)
+
+
+def hot_predict(data_dir, parameters, output_dir, to_json=True, verbose=False):
     """Makes predictions when all long running preparation operations are made.
     Args:
         image_path (string): The path to the source image.
@@ -89,18 +103,13 @@ def hot_predict(image_path, parameters, to_json=True, verbose=False):
         for key, val in parameters['pred_options'].items():
             options[key] = val
 
-    # predict
-    use_sliding_window = H.get('sliding_predict', {'enable': False}).get('enable', False)
-    if use_sliding_window:
-        if verbose:
-            print('Sliding window mode on')
-        print('Sliding prediction')
-        return sliding_predict(image_path, parameters, to_json, H, options)
-    else:
-        if verbose:
-            print('Sliding window mode off')
-        print('Regular prediction')
-        return regular_predict(image_path, parameters, to_json, H, options)
+    print('data dir is {}'.format(data_dir))
+    img_files = image_files(data_dir)
+    print('img_files size is {}'.format(len(img_files)))
+    for img in img_files:
+        pred_anno = predict(img, H, parameters, options, to_json, verbose)
+        fname = img.split(os.sep)[-1]
+        save_results(img, pred_anno, output_dir, fname)
 
 
 def calculate_medium_box(boxes):
@@ -361,6 +370,13 @@ def save_results(image_path, anno, output_dir, fname='result', json_result=False
         subprocess.call(['chmod', '644', fpath])
 
 
+def image_files(data_dir):
+    filenames = []
+    for ext in ('*.png', '*.gif', '*.jpg', '*.jpeg'):
+        filenames.extend(glob.glob(os.path.join(data_dir, ext)))
+    return filenames
+
+
 def main():
     parser = OptionParser(usage='usage: %prog [options] <image> <hypes>')
     parser.add_option('--gpu', action='store', type='int', default=0)
@@ -384,16 +400,7 @@ def main():
     init_params = initialize(weights_path, hypes_path, options)
     init_params['pred_options'] = {'verbose': True}
 
-    filenames = []
-    for ext in ('*.png', '*.gif', '*.jpg', '*.jpeg'):
-        filenames.extend(glob.glob(os.path.join(data_dir, ext)))
-
-    print(filenames)
-    for image_filename in filenames:
-        pred_anno = hot_predict(image_filename, init_params)
-        fname = image_filename.split(os.sep)[-1]
-
-        save_results(image_filename, pred_anno, output_dir, fname)
+    hot_predict(data_dir, init_params, output_dir)
 
 
 if __name__ == '__main__':

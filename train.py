@@ -2,6 +2,7 @@
 import argparse
 import datetime
 import json
+import os
 import random
 import string
 import threading
@@ -9,7 +10,6 @@ import time
 from distutils.version import LooseVersion
 
 import numpy as np
-import os
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from scipy import misc

@@ -6,3 +6,4 @@ data/
 .idea/
 output/
 weights_my/
+test_data/
